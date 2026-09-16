@@ -58,7 +58,7 @@ spec:
     spec:
       project: multistate
       source:
-        repoURL:        https://github.com/sayymeer/sameer-yadav-multistate-config.git
+        repoURL:        https://github.com/AI-Native-2026-08-05-Intuit/sameer-yadav-multistate-config.git
         path:           "{{overlay}}"
         targetRevision: main
       destination:

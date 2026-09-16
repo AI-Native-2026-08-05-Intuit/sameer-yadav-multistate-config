@@ -15,7 +15,7 @@ spec:
   # sourceRepos is indistinguishable from leaving the project in "default"
   # for security purposes.
   sourceRepos:
-    - https://github.com/sayymeer/sameer-yadav-multistate-config.git
+    - https://github.com/AI-Native-2026-08-05-Intuit/sameer-yadav-multistate-config.git
 
   # Exactly three (server, namespace) pairs -- no wildcard destination.
   destinations:
