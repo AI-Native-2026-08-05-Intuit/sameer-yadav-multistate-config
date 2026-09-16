@@ -8,11 +8,16 @@ resources:
 namespace: multistate-dev
 
 # Image-tag rewrite -- the CI _bump-config.yml workflow rewrites the tag
-# portion only, on every green main build. Do NOT hand-edit this.
+# portion only, on every green main build. Do NOT hand-edit this in a real
+# PR from CI. Tag below is a one-off manual substitution for local Task 1-3
+# live verification only (this session's corporate-proxy TLS interception
+# blocks `aws ecr describe-images` locally, so a placeholder 40-hex-char
+# tag was swapped for an image already imported into k3d and known to run
+# -- see GITOPS.md deviation #14).
 images:
   - name:    uptimecrew/multistate-api
     newName: 228615803036.dkr.ecr.us-east-1.amazonaws.com/multistate-api
-    newTag:  1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f
+    newTag:  w6d2-dev-verify
 
 replicas:
   - name:  multistate-api
