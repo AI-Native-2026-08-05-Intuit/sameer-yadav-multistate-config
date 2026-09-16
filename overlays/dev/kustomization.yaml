@@ -56,13 +56,3 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: multistate.dev.uptimecrew.internal
-
-patchesJson6902:
-  - target:
-      version: v1
-      kind: Service
-      name: multistate-api
-    patch: |-
-      - op: add
-        path: /spec/thisFieldDoesNotExist
-        value: broken
