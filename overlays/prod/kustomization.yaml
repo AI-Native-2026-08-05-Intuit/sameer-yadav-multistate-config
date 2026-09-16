@@ -10,7 +10,7 @@ namespace: multistate-prod
 images:
   - name:    uptimecrew/multistate-api
     newName: 228615803036.dkr.ecr.us-east-1.amazonaws.com/multistate-api
-    newTag:  1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f
+    newTag:  w6d2-dev-verify
 
 replicas:
   - name:  multistate-api
