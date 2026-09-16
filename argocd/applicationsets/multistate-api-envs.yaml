@@ -52,6 +52,9 @@ spec:
         # third, on a multi-Application sync (e.g. the ApplicationSet's
         # first apply).
         argocd.argoproj.io/sync-wave: "{{wave}}"
+        # Same version-skew workaround as the Task-1 anchor Application --
+        # see multistate-api-dev.yaml and GITOPS.md deviation #13.
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
       labels:
         env:  "{{env}}"
         team: multistate

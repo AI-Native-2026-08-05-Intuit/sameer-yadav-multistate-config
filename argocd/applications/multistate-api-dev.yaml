@@ -17,6 +17,15 @@ metadata:
   labels:
     env:  dev
     team: multistate
+  annotations:
+    # Argo CD v2.11.7's bundled OpenAPI schema predates Kubernetes 1.35's
+    # DeploymentStatus.terminatingReplicas field, which breaks the default
+    # structured-merge diff ("field not declared in schema") against this
+    # cluster's real k8s v1.35 API server. ServerSideDiff pushes the diff
+    # computation to the API server itself (which knows its own schema)
+    # instead of computing it client-side against Argo CD's stale copy.
+    # See GITOPS.md deviation #13.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
 spec:
   # MUST be the project name -- never "default".
   project: multistate
