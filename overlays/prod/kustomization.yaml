@@ -1,0 +1,55 @@
+# overlays/prod/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: multistate-prod
+
+images:
+  - name:    uptimecrew/multistate-api
+    newName: 228615803036.dkr.ecr.us-east-1.amazonaws.com/multistate-api
+    newTag:  w6d2-dev-verify
+
+replicas:
+  - name:  multistate-api
+    count: 3
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: multistate-api-config
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: k8s,prod
+      - op: replace
+        path: /data/LOGGING_LEVEL_ROOT
+        value: WARN
+      - op: replace
+        path: /data/SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://postgres.multistate-prod.svc.cluster.local:5432/multistate_dev
+      - op: replace
+        path: /data/SPRING_DATA_MONGODB_URI
+        value: mongodb://mongo.multistate-prod.svc.cluster.local:27017/multistate
+      - op: replace
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: redis.multistate-prod.svc.cluster.local
+      - op: replace
+        path: /data/SPRING_KAFKA_BOOTSTRAP_SERVERS
+        value: kafka.multistate-prod.svc.cluster.local:9092
+  - target:
+      kind: Deployment
+      name: kafka
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/4/value
+        value: "PLAINTEXT://kafka.multistate-prod.svc.cluster.local:9092"
+  - target:
+      kind: Ingress
+      name: multistate-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: multistate.prod.uptimecrew.internal

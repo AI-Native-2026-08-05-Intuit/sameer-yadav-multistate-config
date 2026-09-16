@@ -1,0 +1,20 @@
+# base/kustomization.yaml
+# Namespace, ResourceQuota, and LimitRange are deliberately NOT listed here --
+# see 00-namespace.yaml's header comment. Namespace creation is delegated to
+# Argo CD's CreateNamespace=true syncOption; quota/limit-range are
+# platform-owned and namespaceResourceBlacklist'd by the AppProject.
+# 50-hpa.yaml is deliberately absent from base: an HPA with minReplicas=2
+# fights the per-env `replicas:` transformer (dev wants 1) and produces a
+# selfHeal tug-of-war. Re-introduce it once each overlay's replica count is
+# at or above the HPA's minReplicas.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 05-dependencies.yaml
+  - 10-multistate-api.deployment.yaml
+  - 20-multistate-api.service.yaml
+  - 30-configmap.yaml
+  - 40-multistate-api.secret.yaml
+  - 60-multistate-api.servicemonitor.yaml
+  - 70-multistate-api.ingress.yaml

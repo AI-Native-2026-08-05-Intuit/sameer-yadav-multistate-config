@@ -1,0 +1,19 @@
+# base/00-namespace.yaml
+#
+# DEVIATION from the W5 D3 source file: the original manifests/00-namespace.yaml
+# also carried a ResourceQuota + LimitRange. Both are dropped here:
+#   - Namespace is a cluster-scoped kind. With the AppProject's
+#     clusterResourceWhitelist: [] (Task 2), Argo CD denies it outright at
+#     sync -- CreateNamespace=true on the Application is what creates the
+#     namespace instead, so this file is intentionally NOT applied by
+#     Argo CD. It is kept here only as a reference for what labels the
+#     namespace should carry; nothing in overlays/ references it.
+#   - ResourceQuota / LimitRange are explicitly namespaceResourceBlacklist
+#     entries in the AppProject -- platform-team owned, not app-team owned.
+#     See argocd/projects/multistate.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: multistate-dev
+  labels:
+    app.kubernetes.io/part-of: multistate

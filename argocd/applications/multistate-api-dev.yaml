@@ -1,0 +1,57 @@
+# argocd/applications/multistate-api-dev.yaml
+# Single-env Application for the dev overlay -- the Task-1 anchor. The
+# ApplicationSet (Task 3) generates the matching dev/staging/prod
+# Applications via a matrix generator and becomes the source of truth for
+# all three; this file is kept in git as documentation of the concrete
+# shape but is NOT applied once the ApplicationSet exists (applying both
+# would race -- see GITOPS.md "Task-1 to Task-3 handoff").
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: multistate-api-dev
+  namespace: argocd
+  # Without this finalizer, deleting the Application would orphan the
+  # Deployment + Service + ConfigMap in the cluster instead of pruning them.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    env:  dev
+    team: multistate
+  annotations:
+    # Argo CD v2.11.7's bundled OpenAPI schema predates Kubernetes 1.35's
+    # DeploymentStatus.terminatingReplicas field, which breaks the default
+    # structured-merge diff ("field not declared in schema") against this
+    # cluster's real k8s v1.35 API server. ServerSideDiff pushes the diff
+    # computation to the API server itself (which knows its own schema)
+    # instead of computing it client-side against Argo CD's stale copy.
+    # See GITOPS.md deviation #13.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+spec:
+  # MUST be the project name -- never "default".
+  project: multistate
+
+  source:
+    repoURL:        https://github.com/AI-Native-2026-08-05-Intuit/sameer-yadav-multistate-config.git
+    path:           overlays/dev
+    targetRevision: main
+
+  destination:
+    server:    https://kubernetes.default.svc
+    namespace: multistate-dev
+
+  syncPolicy:
+    automated:
+      prune:      true   # remove resources deleted from Git
+      selfHeal:   true   # revert drift from kubectl edit on live cluster
+      allowEmpty: false  # never sync an empty manifest set (deletes everything)
+    syncOptions:
+      - CreateNamespace=true     # first sync creates multistate-dev if missing
+      - ServerSideApply=true     # avoids the 256 kB last-applied-config limit
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration:    10s
+        factor:      2
+        maxDuration: 3m
