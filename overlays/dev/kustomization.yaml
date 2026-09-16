@@ -1,0 +1,53 @@
+# overlays/dev/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: multistate-dev
+
+# Image-tag rewrite -- the CI _bump-config.yml workflow rewrites the tag
+# portion only, on every green main build. Do NOT hand-edit this.
+images:
+  - name:    uptimecrew/multistate-api
+    newName: 228615803036.dkr.ecr.us-east-1.amazonaws.com/multistate-api
+    newTag:  1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f
+
+replicas:
+  - name:  multistate-api
+    count: 1
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: multistate-api-config
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: k8s,dev
+      - op: replace
+        path: /data/LOGGING_LEVEL_ROOT
+        value: DEBUG
+      - op: replace
+        path: /data/SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://postgres.multistate-dev.svc.cluster.local:5432/multistate_dev
+      - op: replace
+        path: /data/SPRING_DATA_MONGODB_URI
+        value: mongodb://mongo.multistate-dev.svc.cluster.local:27017/multistate
+      - op: replace
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: redis.multistate-dev.svc.cluster.local
+      - op: replace
+        path: /data/SPRING_KAFKA_BOOTSTRAP_SERVERS
+        value: kafka.multistate-dev.svc.cluster.local:9092
+  # No Kafka advertised-listener patch needed here: dev's namespace matches
+  # the base value (kafka.multistate-dev...) already. staging/prod patch
+  # this same field (env index 4 = KAFKA_ADVERTISED_LISTENERS) instead.
+  - target:
+      kind: Ingress
+      name: multistate-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: multistate.dev.uptimecrew.internal

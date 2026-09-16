@@ -1,0 +1,86 @@
+# argocd/applicationsets/multistate-api-envs.yaml
+# Templates one Application per env. Adding a new env is a one-line entry
+# in the list generator's elements.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: multistate-api-envs
+  namespace: argocd
+spec:
+  # If an env falls out of the matrix, KEEP the existing Application +
+  # workload running -- a human re-reviews before any teardown. The
+  # default (delete) is the wrong default for prod.
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+
+  generators:
+    - matrix:
+        generators:
+          # Inner generator A: explicit env list.
+          - list:
+              elements:
+                - env: dev
+                  overlay: overlays/dev
+                  namespace: multistate-dev
+                  wave: "0"
+                - env: staging
+                  overlay: overlays/staging
+                  namespace: multistate-staging
+                  wave: "1"
+                - env: prod
+                  overlay: overlays/prod
+                  namespace: multistate-prod
+                  wave: "2"
+          # Inner generator B: every cluster tagged tier=workload. The local
+          # k3d cluster's in-cluster Secret is labelled by
+          # argocd-system/in-cluster-secret.yaml (see that file's header for
+          # why a fresh Argo CD install has no such Secret to label by
+          # default).
+          - clusters:
+              selector:
+                matchLabels:
+                  uptimecrew.example.internal/tier: workload
+
+  template:
+    metadata:
+      name: multistate-api-{{env}}
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        # Orders cross-env promotion: dev syncs first, staging second, prod
+        # third, on a multi-Application sync (e.g. the ApplicationSet's
+        # first apply).
+        argocd.argoproj.io/sync-wave: "{{wave}}"
+      labels:
+        env:  "{{env}}"
+        team: multistate
+    spec:
+      project: multistate
+      source:
+        repoURL:        https://github.com/sayymeer/sameer-yadav-multistate-config.git
+        path:           "{{overlay}}"
+        targetRevision: main
+      destination:
+        server:    "{{server}}"
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune:    true
+          selfHeal: true
+          # PROD-ONLY EXCEPTION left as a documented call, not implemented:
+          # a k3d lab cluster has no real users, so prod stays on the same
+          # automated stanza as dev/staging today. In a real install,
+          # templatePatch would drop `automated` for env: prod and require
+          # manual sync instead. See GITOPS.md.
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration:    10s
+            factor:      2
+            maxDuration: 3m

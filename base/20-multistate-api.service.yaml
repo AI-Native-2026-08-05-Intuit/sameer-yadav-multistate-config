@@ -1,0 +1,17 @@
+# base/20-multistate-api.service.yaml - stable in-cluster name.
+apiVersion: v1
+kind: Service
+metadata:
+  name: multistate-api
+  labels:
+    app.kubernetes.io/name:      multistate-api
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: multistate-api
+  ports:
+    - name:       http
+      port:       8080
+      targetPort: http
+      protocol:   TCP

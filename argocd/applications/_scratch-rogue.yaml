@@ -1,0 +1,28 @@
+# argocd/applications/_scratch-rogue.yaml
+# NOT a real Application -- Task 2 guardrail-verification fixture only.
+# Deliberately targets a namespace (kube-system) NOT in the multistate
+# AppProject's destinations allow-list. Apply it to prove the AppProject
+# rejects it, then delete it immediately:
+#
+#   kubectl apply -f argocd/applications/_scratch-rogue.yaml -n argocd
+#   # expect: "application destination {https://kubernetes.default.svc
+#   #          kube-system} is not permitted in project 'multistate'"
+#   kubectl delete -f argocd/applications/_scratch-rogue.yaml -n argocd
+#
+# Paste the rejection message into the PR body as evidence (see GITOPS.md).
+# This file stays in git only as a reproducible fixture; it is never wired
+# into any sync loop.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: multistate-api-rogue
+  namespace: argocd
+spec:
+  project: multistate
+  source:
+    repoURL:        https://github.com/sayymeer/sameer-yadav-multistate-config.git
+    path:           overlays/dev
+    targetRevision: main
+  destination:
+    server:    https://kubernetes.default.svc
+    namespace: kube-system   # NOT in the project's destinations -- must be rejected

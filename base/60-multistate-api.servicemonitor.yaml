@@ -1,0 +1,23 @@
+# base/60-multistate-api.servicemonitor.yaml
+#
+# Requires the Prometheus Operator CRDs (monitoring.coreos.com/v1) to already
+# exist on the destination cluster. A bare k3d cluster does NOT ship these --
+# install the kube-prometheus-stack CRDs (or the full chart) before the first
+# sync, or comment this resource out of overlays/*/kustomization.yaml's
+# resources list. See GITOPS.md "What this layer does NOT do (yet)".
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: multistate-api
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: multistate-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: multistate-api
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s

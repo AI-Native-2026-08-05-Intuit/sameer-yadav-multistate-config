@@ -1,0 +1,55 @@
+# overlays/staging/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: multistate-staging
+
+images:
+  - name:    uptimecrew/multistate-api
+    newName: 228615803036.dkr.ecr.us-east-1.amazonaws.com/multistate-api
+    newTag:  1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f
+
+replicas:
+  - name:  multistate-api
+    count: 2
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: multistate-api-config
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: k8s,staging
+      - op: replace
+        path: /data/LOGGING_LEVEL_ROOT
+        value: INFO
+      - op: replace
+        path: /data/SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://postgres.multistate-staging.svc.cluster.local:5432/multistate_dev
+      - op: replace
+        path: /data/SPRING_DATA_MONGODB_URI
+        value: mongodb://mongo.multistate-staging.svc.cluster.local:27017/multistate
+      - op: replace
+        path: /data/SPRING_DATA_REDIS_HOST
+        value: redis.multistate-staging.svc.cluster.local
+      - op: replace
+        path: /data/SPRING_KAFKA_BOOTSTRAP_SERVERS
+        value: kafka.multistate-staging.svc.cluster.local:9092
+  - target:
+      kind: Deployment
+      name: kafka
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/4/value
+        value: "PLAINTEXT://kafka.multistate-staging.svc.cluster.local:9092"
+  - target:
+      kind: Ingress
+      name: multistate-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: multistate.staging.uptimecrew.internal
