@@ -45,6 +45,15 @@ spec:
           env:
             - name:  JAVA_TOOL_OPTIONS
               value: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+            # W6D4: anthropic-api Secret is created out-of-band via
+            # `kubectl create secret generic anthropic-api --from-literal=...`
+            # (see COST.md) -- never committed, so it is not one of the
+            # Secrets under base/.
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef: { name: anthropic-api, key: ANTHROPIC_API_KEY }
+            - name: EMBEDDINGS_URL
+              value: "http://embeddings.multistate-dev.svc.cluster.local/embed"
           resources:
             requests: { cpu: 250m,  memory: 512Mi }
             limits:   {              memory: 1Gi   }
