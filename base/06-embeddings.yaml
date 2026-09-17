@@ -1,0 +1,36 @@
+# base/06-embeddings.yaml - W6D4: self-hosted HF TEI embeddings Service.
+# bge-large-en-v1.5 -> 1024-dim vectors, matching tenant_embeddings'
+# vector(1024) column. No API key, no AWS, no third party. First start
+# downloads the model (~1.3GB) once into the emptyDir cache.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embeddings
+  labels: { app.kubernetes.io/name: embeddings, app.kubernetes.io/part-of: multistate }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: embeddings }
+  template:
+    metadata:
+      labels: { app: embeddings }
+    spec:
+      containers:
+        - name: tei
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+          args: ["--model-id", "BAAI/bge-large-en-v1.5"]
+          ports: [{ name: http, containerPort: 80 }]
+          volumeMounts: [{ name: cache, mountPath: /data }]
+          resources:
+            requests: { cpu: "1", memory: 2Gi }
+            limits:   { cpu: "2", memory: 4Gi }
+      volumes: [{ name: cache, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: embeddings
+  labels: { app.kubernetes.io/name: embeddings }
+spec:
+  selector: { app: embeddings }
+  ports: [{ name: http, port: 80, targetPort: http }]

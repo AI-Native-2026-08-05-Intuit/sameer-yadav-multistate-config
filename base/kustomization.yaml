@@ -12,6 +12,7 @@ kind: Kustomization
 
 resources:
   - 05-dependencies.yaml
+  - 06-embeddings.yaml
   - 10-multistate-api.deployment.yaml
   - 20-multistate-api.service.yaml
   - 30-configmap.yaml
