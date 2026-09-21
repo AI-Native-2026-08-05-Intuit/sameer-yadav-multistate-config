@@ -19,3 +19,5 @@ resources:
   - 40-multistate-api.secret.yaml
   - 60-multistate-api.servicemonitor.yaml
   - 70-multistate-api.ingress.yaml
+  - 80-multistate-worker.deployment.yaml
+  - 81-multistate-worker.scaledobject.yaml

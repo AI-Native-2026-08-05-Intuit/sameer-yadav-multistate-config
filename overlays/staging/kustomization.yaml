@@ -53,3 +53,13 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: multistate.staging.uptimecrew.internal
+  # W6D5: the ScaledObject's Kafka trigger hardcodes a *.svc.cluster.local
+  # hostname in base the same way the ConfigMap does above -- same reason,
+  # same fix (per-env overlay patch).
+  - target:
+      kind: ScaledObject
+      name: multistate-worker-scaledobject
+    patch: |-
+      - op: replace
+        path: /spec/triggers/0/metadata/bootstrapServers
+        value: kafka.multistate-staging.svc.cluster.local:9092

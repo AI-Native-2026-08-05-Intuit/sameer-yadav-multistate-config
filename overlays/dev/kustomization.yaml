@@ -4,6 +4,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - 50-hpa.yaml
 
 namespace: multistate-dev
 

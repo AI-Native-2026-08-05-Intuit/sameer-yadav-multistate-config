@@ -53,3 +53,10 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: multistate.prod.uptimecrew.internal
+  - target:
+      kind: ScaledObject
+      name: multistate-worker-scaledobject
+    patch: |-
+      - op: replace
+        path: /spec/triggers/0/metadata/bootstrapServers
+        value: kafka.multistate-prod.svc.cluster.local:9092
