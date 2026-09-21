@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16
+          image: pgvector/pgvector:pg16   # W6D4: tenant_embeddings needs CREATE EXTENSION vector
           ports: [{ name: db, containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: multistate_dev }
