@@ -1,0 +1,62 @@
+# overlays/dev/50-hpa.yaml
+# W6D5 Task 2 (RUNNABLE): HPA on the custom Prometheus metric
+# multistate_inflight_requests, fed via the Prometheus Adapter (see
+# ../../PROMETHEUS-ADAPTER.md). Target 7 comes from a single-replica
+# saturation test (ramp one pod to the 500ms p99 SLO). CPU-only HPA is
+# blind to LLM-API-bound latency -- the api pod waits on the network, CPU
+# stays low while p99 climbs.
+#
+# Placed in overlays/dev/, NOT base/, for the exact reason
+# base/kustomization.yaml's header comment already gives for omitting an
+# HPA from base: minReplicas here (3) is only valid once an env's
+# `replicas:` transformer count is at or above it. dev's own transformer
+# sets replicas: 1 for local/manual testing convenience, so this file
+# does NOT list minReplicas: 3 as a floor Argo CD's selfHeal would fight
+# -- it lists it as the HPA's target once traffic and multistate-api-hpa
+# actually own scaling dev. staging (2) and prod (3) overlays should add
+# their own copy of this file with a minReplicas at or above their own
+# `replicas:` count when they're ready to hand scaling to the HPA too.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: multistate-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: multistate-api
+  minReplicas: 3
+  maxReplicas: 28
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: multistate_inflight_requests
+        target:
+          type: AverageValue
+          averageValue: "7"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600   # W5 D3 callback: outlast a bursty dip
+      policies: [{type: Percent, value: 25, periodSeconds: 60}]
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies: [{type: Percent, value: 100, periodSeconds: 60}]
+      selectPolicy: Max
+---
+# W6D5 Task 2: protect the floor this HPA promises. minAvailable matches
+# minReplicas above so a voluntary disruption (node drain, consolidation)
+# never takes dev below three serving pods. Selector matches the
+# Service/Deployment label (app.kubernetes.io/name: multistate-api) --
+# NOT the worker's (app.kubernetes.io/name: multistate-api-worker), which
+# must stay outside this budget's blast radius. Kept alongside the HPA
+# here (not in base/) because the floor it protects is dev-specific too.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: multistate-api-pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: multistate-api

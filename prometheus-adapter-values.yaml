@@ -1,0 +1,22 @@
+# prometheus-adapter-values.yaml
+# W6D5 Task 2: map the Micrometer gauge multistate_inflight_requests into
+# the custom-metrics API so overlays/dev/50-hpa.yaml's HPA can read it.
+# Not a Kustomize resource -- Helm values consumed directly by
+# `helm upgrade --install prometheus-adapter ... -f prometheus-adapter-values.yaml`
+# (see PROMETHEUS-ADAPTER.md), same as the app repo's copy of this file.
+# prometheusUrl points at the live kube-prometheus-stack Prometheus
+# Service in the target cluster's monitoring namespace.
+prometheus:
+  url: http://kube-prometheus-stack-prometheus.monitoring.svc
+  port: 9090
+rules:
+  custom:
+    - seriesQuery: 'multistate_inflight_requests{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace: {resource: namespace}
+          pod:       {resource: pod}
+      name:
+        matches: "multistate_inflight_requests"
+        as: "multistate_inflight_requests"
+      metricsQuery: 'avg_over_time(multistate_inflight_requests{<<.LabelMatchers>>}[1m])'

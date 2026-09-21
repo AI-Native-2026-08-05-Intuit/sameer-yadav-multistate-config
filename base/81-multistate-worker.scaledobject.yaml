@@ -1,0 +1,48 @@
+# base/81-multistate-worker.scaledobject.yaml
+# W6D5 Task 1 (RUNNABLE on k3d): KEDA scales the tenants.events worker on
+# Kafka consumer-group lag. lagThreshold: "10" means the generated HPA
+# targets 10 messages of lag per pod; e.g. 73 messages of lag scale to
+# ceil(73/10) = 8 pods -- the same ceil math the app repo's Task 4 SQS
+# queueLength variant uses. The dev Kafka broker is plaintext, so no
+# TriggerAuthentication is needed here.
+#
+# offsetResetPolicy: earliest (NOT latest) -- the worker starts at
+# replicas: 0 with no committed offsets for multistate-read-model-builder.
+# "latest" would report 0 lag against a group that has never consumed
+# anything, so KEDA would never scale up no matter how much backlog piles
+# up on the topic.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: multistate-worker-scaledobject
+spec:
+  scaleTargetRef:
+    name: multistate-api-worker
+  minReplicaCount: 0            # scale-to-zero when the topic is drained
+  maxReplicaCount: 28
+  pollingInterval: 15
+  cooldownPeriod:  300
+  # W6D5: without a scaleUp ramp, KEDA's generated HPA defaults to
+  # doubling (100%/60s) or worse -- against a large lag spike it asked
+  # for 28 pods in one step. A JVM cold start briefly needs close to a
+  # full CPU; admitting that many at once starved every readiness probe
+  # in the namespace (postgres/redis/kafka/mongo included, not just the
+  # worker itself) on a single-VM k3d laptop cluster. This is the same
+  # thundering-herd protection a real cluster wants too, just with a
+  # lower bound here because the substrate is one laptop instead of an
+  # elastic node pool.
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - { type: Pods, value: 4, periodSeconds: 60 }
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.multistate-dev.svc.cluster.local:9092
+        consumerGroup: multistate-read-model-builder    # the worker's group
+        topic: tenants.events
+        lagThreshold: "10"
+        offsetResetPolicy: earliest

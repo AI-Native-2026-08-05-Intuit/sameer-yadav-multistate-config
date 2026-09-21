@@ -9,12 +9,14 @@ control-plane resources.
 ## Layout
 
 ```
-base/                     W5D3 manifests, environment-agnostic
+base/                     W5D3 manifests, environment-agnostic (+ W6D5 worker/KEDA)
 overlays/{dev,staging,prod}/   Kustomize overlays (namespace, replicas, image tag, config)
+overlays/dev/50-hpa.yaml  W6D5 SLO-derived HPA + PDB (dev only, see file header)
 argocd/projects/          AppProject (allow-lists + RBAC)
 argocd/applications/      Task-1 anchor Application (dev)
 argocd/applicationsets/   Matrix generator -> one Application per env
 argocd-system/            Argo CD control-plane config (notifications, cluster registration)
+prometheus-adapter-values.yaml   W6D5 Helm values, see PROMETHEUS-ADAPTER.md
 ```
 
 Do not hand-edit the `newTag:` in `overlays/*/kustomization.yaml` — the

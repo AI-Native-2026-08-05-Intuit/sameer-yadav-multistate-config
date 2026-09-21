@@ -1,0 +1,61 @@
+# base/80-multistate-worker.deployment.yaml
+# W6D5 Task 1: the KEDA scale target. Same image as multistate-api, run
+# with MULTISTATE_KAFKA_CONSUMER_ENABLED=true (the api Deployment's
+# ConfigMap sets it false) so only this Deployment's pods are in the
+# multistate-read-model-builder consumer group. Serves no HTTP: the app
+# still boots the full Spring context (Postgres/Mongo/Redis are hard
+# startup dependencies), but spring.main.web-application-type=none skips
+# the embedded Tomcat, so no readiness/liveness HTTP probes are wired here.
+#
+# Starts at replicas: 0 -- KEDA owns the count from here (see
+# 81-multistate-worker.scaledobject.yaml). Unlike multistate-api, this
+# Deployment is NOT listed in overlays/dev's `replicas:` transformer, so
+# it doesn't hit the same selfHeal tug-of-war base/kustomization.yaml's
+# header comment describes for a min-replicas HPA -- KEDA and Argo CD
+# both agree the source of truth for replica count is the
+# ScaledObject-generated HPA, not this file's spec.replicas.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multistate-api-worker
+  labels:
+    app.kubernetes.io/name:      multistate-api-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of:   multistate
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: multistate-api-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name:      multistate-api-worker
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/part-of:   multistate
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    65532
+        fsGroup:      65532
+      containers:
+        - name: worker
+          image: uptimecrew/multistate-api:0.1.0   # same image as multistate-api
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: multistate-api-config }
+            - secretRef:    { name: multistate-api-secrets }
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+            - name: EMBEDDINGS_URL
+              value: "http://embeddings.multistate-dev.svc.cluster.local"
+            # Overrides the ConfigMap's "false" -- this is the one
+            # Deployment whose pods are meant to consume tenants.events.
+            - name: MULTISTATE_KAFKA_CONSUMER_ENABLED
+              value: "true"
+            - name: SPRING_MAIN_WEB_APPLICATION_TYPE
+              value: "none"
+          resources:
+            requests: { cpu: "250m", memory: 512Mi }
+            limits:   { memory: 1Gi }

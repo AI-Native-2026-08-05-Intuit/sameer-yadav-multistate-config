@@ -25,3 +25,9 @@ data:
   OTEL_TRACES_EXPORTER:  none
   OTEL_METRICS_EXPORTER: none
   OTEL_LOGS_EXPORTER:    none
+  # W6D5 Task 1: the HTTP api pods must NOT also consume tenants.events --
+  # they'd share multistate-read-model-builder with the KEDA-scaled
+  # worker and drain lag before KEDA ever observes it. The worker
+  # Deployment overrides this back to "true"
+  # (80-multistate-worker.deployment.yaml).
+  MULTISTATE_KAFKA_CONSUMER_ENABLED: "false"
